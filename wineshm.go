@@ -55,7 +55,7 @@ func GetWineShm(shmname string, mode string) (uintptr, error) {
 
 	WineCmd[0] = winePath
 	args := []string{shmwrapper1Path, shmname, mode, shmwrapper2Path}
-	cmd := exec.Command(WineCmd[0], (append(WineCmd, args...))[0:]...)
+	cmd := exec.Command(WineCmd[0], (append(WineCmd, args...))[1:]...)
 
 	writeFile := os.NewFile(uintptr(fds[0]), "child-writes")
 	readFile := os.NewFile(uintptr(fds[1]), "parent-reads")
