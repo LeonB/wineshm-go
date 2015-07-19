@@ -147,12 +147,6 @@ func lookPath(file string) (string, error) {
 		return path, nil
 	}
 
-	gopath := os.Getenv("GOPATH")
-	path, err = exec.LookPath(gopath + "/src/github.com/leonb/wineshm-go/" + file)
-	if err == nil {
-		return path, nil
-	}
-
 	return exec.LookPath(file)
 }
 
