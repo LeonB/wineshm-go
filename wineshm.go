@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
@@ -15,6 +16,7 @@ import (
 )
 
 const (
+	TMP_PREFIX     = "wineshm-go"
 	FILE_MAP_READ  = "r"
 	FILE_MAP_WRITE = "w"
 	SOCKET_TIMEOUT = 5 * time.Second
@@ -38,16 +40,28 @@ func GetWineShm(shmname string, mode string) (uintptr, error) {
 	defer unix.Close(fds[0])
 	defer unix.Close(fds[1])
 
-	shmwrapper1Path, err := lookPath("shmwrapper1.exe")
+	// Create the first wrapper from binary data in bindata.go and place in in
+	// the systems temp directory
+	shmwrapper1, err := getAsset("assets/shmwrapper1.exe")
 	if err != nil {
 		return 0, err
 	}
+	shmwrapper1Path := shmwrapper1.Name()
+	defer os.Remove(shmwrapper1Path)
 
-	shmwrapper2Path, err := lookPath("shmwrapper2.bin")
+	// Create the second wrapper from binary data in bindata.go and place in in
+	// the systems temp directory
+	shmwrapper2, err := getAsset("assets/shmwrapper2.bin")
 	if err != nil {
 		return 0, err
 	}
+	shmwrapper2Path := shmwrapper2.Name()
+	// This is tricky: on some distro's the temp directory doesn't allow for
+	// running executables
+	os.Chmod(shmwrapper2Path, 0500)
+	defer os.Remove(shmwrapper2Path)
 
+	// Lookup the wine location of the wine binary
 	winePath, err := lookPath(WineCmd[0])
 	if err != nil {
 		return 0, err
@@ -104,6 +118,7 @@ func GetWineShm(shmname string, mode string) (uintptr, error) {
 	// Retrieve message on socket
 	_, oobn, _, _, err := uc.ReadMsgUnix(buf, oob)
 	if closeUnix.Stop() == false {
+		fmt.Println(stderr)
 		return 0, ErrSockTimeout
 	}
 
@@ -132,5 +147,31 @@ func lookPath(file string) (string, error) {
 		return path, nil
 	}
 
+	gopath := os.Getenv("GOPATH")
+	path, err = exec.LookPath(gopath + "/src/github.com/leonb/wineshm-go/" + file)
+	if err == nil {
+		return path, nil
+	}
+
 	return exec.LookPath(file)
+}
+
+func getAsset(assetName string) (*os.File, error) {
+	f, err := ioutil.TempFile("", TMP_PREFIX)
+	defer f.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := Asset(assetName)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = f.Write(data)
+	if err != nil {
+		return nil, err
+	}
+
+	return f, nil
 }

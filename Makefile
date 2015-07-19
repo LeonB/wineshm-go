@@ -1,14 +1,19 @@
-all: shmwrapper1.exe shmwrapper2.bin
+all: assets/shmwrapper1.exe assets/shmwrapper2.bin bindata.go
 
 CC=gcc
 WINECC=i686-w64-mingw32-gcc
 CFLAGS=-Wall -Os -g
 
-shmwrapper2.bin: shmwrapper2.c
+assets/shmwrapper2.bin: shmwrapper2.c
 	$(CC) $< $(CFLAGS) -o $@
 
-shmwrapper1.exe: shmwrapper1.c
+assets/shmwrapper1.exe: shmwrapper1.c
 	$(WINECC) $< $(CFLAGS) -mconsole -o $@
 
+bindata.go: assets/shmwrapper1.exe assets/shmwrapper2.bin
+	go-bindata -pkg=wineshm -ignore=.gitkeep assets/
+
 clean:
-	rm -f shmwrapper1.exe shmwrapper2.bin
+	rm -f assets/shmwrapper1.exe assets/shmwrapper2.bin bindata.go
+
+# vim: syntax=make ts=4 sw=4 sts=4 sr noet

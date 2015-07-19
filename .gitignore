@@ -1,2 +1,5 @@
 shmwrapper1.exe
 shmwrapper2.bin
+assets/*
+!assets/.gitkeep
+bindata.go
